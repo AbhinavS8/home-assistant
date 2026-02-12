@@ -1,6 +1,7 @@
 import paho.mqtt.client as mqtt
 import logging
 import json
+from celery_app import call_llm
 
 BROKER_HOST = "localhost"
 BROKER_PORT = 1883
@@ -59,8 +60,11 @@ class MQTTService:
 
     #will add later
     def handle_event(self, topic, payload):
-        
-        pass
+        try:
+            .delay(topic, payload)
+            logger.info(f"Queued MQTT event: {topic}")
+        except Exception as e:
+            logger.error(f"Failed to queue MQTT event: {e}")
 
-    def update_payload(self,topic,payload):
+    def update_db(self,topic,payload):
         pass
