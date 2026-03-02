@@ -23,8 +23,7 @@ class MQTTService:
     def on_client_connect(self, client, userdata, flags, rc):
         logger.info(f"Connected to MQTT (rc={rc})")
 
-        # client.subscribe("home/+/events", qos=1)
-        # client.subscribe("home/+/state", qos=1)
+        client.subscribe("home/#", qos=1) #multilevel wild card
 
     def on_client_disconnect(self, client, userdata, rc):
         logger.warning("Disconnected from MQTT")
@@ -35,11 +34,12 @@ class MQTTService:
 
         logger.info(f"MQTT {topic} -> {payload}")
 
-        # enqueue to Redis / worker instead
+        # enqueue to Redis / worker if its a command
         if topic.endswith("/command"):
             self.handle_event(topic, payload)
         else:
-            self.update_db(topic,payload)
+            #directly update database
+            pass
 
 
     #lifecycle
@@ -61,10 +61,7 @@ class MQTTService:
     #will add later
     def handle_event(self, topic, payload):
         try:
-            .delay(topic, payload)
+            call_llm.delay(topic, payload)
             logger.info(f"Queued MQTT event: {topic}")
         except Exception as e:
             logger.error(f"Failed to queue MQTT event: {e}")
-
-    def update_db(self,topic,payload):
-        pass

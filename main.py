@@ -1,7 +1,14 @@
 from fastapi import FastAPI
-import paho.mqtt.client as mqtt
+from mqtt.client import MQTTService
+from contextlib import asynccontextmanager
 
 app = FastAPI()
+
+#start and stop MQTT connection with server
+async def lifespan(app: FastAPI):
+    MQTTService.start()
+    yield
+    MQTTService.stop()
 
 @app.get("/")
 async def root():
