@@ -2,7 +2,10 @@ from celery import Celery
 import requests
 import logging
 import json
+import os
+from openai import OpenAI
 
+client = OpenAI()
 logger = logging.Logger(__name__)
 
 app = Celery("home_assistant",
@@ -20,43 +23,55 @@ app = Celery("home_assistant",
     }
 )
 
+
+# response = client.responses.create(
+#   prompt={
+#     "id": "pmpt_69a2f7e5dc3881908eb7903be7f121c002c22c5bc2df80f6",
+#     "version": "2"
+#   }
+# )
+
 @app.task(bind=True)
 def call_llm(self, topic: str, command: str): #topic - where command was received, command - voice command
     """Analyze with ChatGPT API"""
     try:
-        prompt = """e
-        """
-      
-        response = requests.post(
-              "https://api.openai.com/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
-                "Content-Type": "application/json"
+        response = client.responses.create(
+            prompt={
+                "id": "pmpt_69a2f7e5dc3881908eb7903be7f121c002c22c5bc2df80f6",
+                "version": "3"
             },
-            json={
-                "model": "gpt-4",
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.3
-            },
-            timeout=30
-        )
+            input= {"role": "user", "content": command}
+        )   
+        for item in response.output:
 
-        if response.status_code ==200:
-            result = response.json()
-            analysis = json.loads(result)
-            for action in analysis.get("actions", []):
-                execute_action.delay(action, analysis.get("priority",0))
-                
-        else:
-            logger.error(f"OpenAI API error: {response.status_code}")
+            for content in item.content:
+                if content.type == "output_text":
+                    # Parse the JSON string
+                    data = json.loads(content.text)
+                    
+                    # Extract intent
+                    intent = data["intent_format"]
+                    function_name = intent["name"]        # "TurnOff"
+                    arguments = intent["arguments"]       # {"name": "fan.kitchen_fan"}
+                    
+                    print(f"Function: {function_name}")
+                    print(f"Arguments: {arguments}")
+                    
+                    # Extract state if needed
+                    state = data.get("state_schema", {})
+                    print(f"State: {state}")
+                execute_action.delay(
+                    function_name=function_name,
+                    arguments=arguments
+                )
+        
     except Exception as exc:
         logger.error(f"LLM analysis failed: {exc}")
         # Retry with exponential backoff
         raise self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))
 
 
-
 @app.task(bind=True)
-def execute_action(self, command, priority): #list of dicts (topics: payloads) to execute
+def execute_action(self, function_name, arguments, priority=0): #payload response
     #maybe use pydantic in future?
     pass
