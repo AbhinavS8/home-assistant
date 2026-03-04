@@ -5,7 +5,11 @@ import os
 from openai import OpenAI
 
 client = OpenAI()
-logger = logging.Logger(__name__)
+logger = logging.getLogger(__name__)
+
+# Load device topics from JSON
+with open(os.path.join(os.path.dirname(__file__), "db/device_topics.json"), "r") as f:
+    DEVICE_TOPICS = json.load(f)
 
 app = Celery("home_assistant",
     broker_url='redis://localhost:6379/0',
@@ -23,12 +27,6 @@ app = Celery("home_assistant",
 )
 
 
-# response = client.responses.create(
-#   prompt={
-#     "id": "pmpt_69a2f7e5dc3881908eb7903be7f121c002c22c5bc2df80f6",
-#     "version": "2"
-#   }
-# )
 
 @app.task(bind=True)
 def call_llm(self, topic: str, command: str): #topic - where command was received, command - voice command
@@ -37,7 +35,7 @@ def call_llm(self, topic: str, command: str): #topic - where command was receive
         response = client.responses.create(
             prompt={
                 "id": "pmpt_69a2f7e5dc3881908eb7903be7f121c002c22c5bc2df80f6",
-                "version": "3"
+                "version": "4"
             },
             input= command
         )   
@@ -75,7 +73,7 @@ def call_llm(self, topic: str, command: str): #topic - where command was receive
 def execute_action(self, function_name, arguments, priority=0):
 
     entity_name = arguments.get("name")
-    device = DEVICE_TOPICS.get(entity_name) #NEED TO fill, maybe from database?
+    device = DEVICE_TOPICS.get(entity_name) #NEED TO fill, using JSON for now
 
     if not device:
         logger.warning(f"No MQTT topic configured for {entity_name}")
@@ -103,6 +101,14 @@ def execute_action(self, function_name, arguments, priority=0):
     else:
         logger.warning(f"Unknown function: {function_name}")
         return
-    from mqtt.client import MQTTService
-    MQTTService.publish(topic, json.dumps(payload))
+
+    # Publish directly using paho-mqtt (avoids circular import, and the service class is stupid anyways)
+    import paho.mqtt.publish as publish
+    publish.single(
+        topic,
+        payload=json.dumps(payload),
+        hostname="localhost",
+        port=1883,
+        qos=1
+    )
     logger.info(f"Published to {topic}: {payload}")

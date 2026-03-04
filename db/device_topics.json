@@ -1,0 +1,27 @@
+{
+  "fan.kitchen_fan": {
+    "topic": "home/kitchen/fan/set",
+    "name": "Kitchen Fan",
+    "type": "fan"
+  },
+  "fan.bedroom_fan": {
+    "topic": "home/bedroom/fan/set",
+    "name": "Bedroom Fan",
+    "type": "fan"
+  },
+  "light.kitchen_light": {
+    "topic": "home/kitchen/light/set",
+    "name": "Kitchen Light",
+    "type": "light"
+  },
+  "light.living_room_light": {
+    "topic": "home/living_room/light/set",
+    "name": "Living Room Light",
+    "type": "light"
+  },
+  "light.bedroom_light": {
+    "topic": "home/bedroom/light/set",
+    "name": "Bedroom Light",
+    "type": "light"
+  }
+}
