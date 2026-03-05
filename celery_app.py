@@ -3,6 +3,7 @@ import logging
 import json
 import os
 from openai import OpenAI
+from cache import get_device_states,set_device_state
 
 client = OpenAI()
 logger = logging.getLogger(__name__)
@@ -31,13 +32,19 @@ app = Celery("home_assistant",
 @app.task(bind=True)
 def call_llm(self, topic: str, command: str): #topic - where command was received, command - voice command
     """Analyze with ChatGPT API"""
+
     try:
+        try:
+            data = get_device_states()
+        except Exception as exc:
+            logger.error(f"failed to read device states {exc}")
+            data=""
         response = client.responses.create(
             prompt={
                 "id": "pmpt_69a2f7e5dc3881908eb7903be7f121c002c22c5bc2df80f6",
                 "version": "4"
             },
-            input= command
+            input= data+"\n\n"+command
         )   
         for item in response.output:
 
@@ -112,3 +119,4 @@ def execute_action(self, function_name, arguments, priority=0):
         qos=1
     )
     logger.info(f"Published to {topic}: {payload}")
+    set_device_state(device, payload) 
