@@ -129,21 +129,6 @@ mosquitto_sub -h localhost -t "home/#" -v
 | Turn Off | "turn off the bedroom fan" | `TurnOff` |
 | Set Light | "set living room light to 50%" | `LightSet` |
 
-## Configuration
-
-### MQTT Broker (mosquitto.conf)
-
-```
-listener 1883
-allow_anonymous true
-```
-
-### Redis Databases
-
-| DB | Usage |
-|----|-------|
-| 0 | Celery task queue |
-| 1 | Device state cache |
 
 ## Adding New Devices
 
@@ -151,14 +136,6 @@ allow_anonymous true
 2. Ensure device subscribes to its MQTT topic (e.g., `home/kitchen/light/set`)
 3. Device should accept JSON payloads: `{"state": "ON"}`, `{"state": "OFF", "brightness": 50}`
 
-## Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| No API request made | Ensure Celery worker is running |
-| Module not found | Activate venv before running |
-| MQTT not connecting | Check Mosquitto is running on port 1883 |
-| Redis connection refused | Start Redis server |
 
 ## License
 
